@@ -65,6 +65,17 @@ class DietOpt:
         self.bounds.pop(id)
         self.__update_df()
 
+    def remove_foods(self):
+        self.food_list = []
+        self.serving_list = []
+        self.price_list = []
+        self.calorie_list = []
+        self.carb_list = []
+        self.protein_list = []
+        self.fat_list = []
+        self.bounds = []
+        self.__update_df()  
+
     def add_equality_constrain(self, params, const):
         self.A_eq.append(params)
         self.b_eq.append(const)
@@ -81,10 +92,13 @@ class DietOpt:
         self.bounds = []
 
     def solve(self):
+        if(len(self.food_list) == 0):
+            raise RuntimeError("Foods list is empty")
+
         if(len(self.A_eq) == 0):
             self.A_eq = None
             self.b_eq = None
-            raise RuntimeError("Can't solve problem with non equality constraints")
+            raise RuntimeError("Can't solve problem without equality constraints")
 
         if(len(self.A_ub) == 0):
             self.A_ub = None
