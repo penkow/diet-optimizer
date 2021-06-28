@@ -22,6 +22,8 @@ class DietOpt:
 
     A_eq = []
     b_eq = []
+
+    bounds = []
     
     df = None
 
@@ -35,7 +37,7 @@ class DietOpt:
         d = {'Food': self.food_list, 'Serving': self.serving_list,'Price': self.price_list,"Calories": self.calorie_list,"Carbs": self.carb_list,"Proteins": self.protein_list,"Fats": self.fat_list}
         self.df = pd.DataFrame(data=d)
 
-    def add_food(self, name, serving, price, carbs, protein, fat):
+    def add_food(self, name, serving, price, carbs, protein, fat, min_servings=0, max_servings=None):
         self.food_list.append(name)
         self.serving_list.append(serving)
         self.price_list.append(price)
@@ -43,6 +45,7 @@ class DietOpt:
         self.carb_list.append(carbs)
         self.protein_list.append(protein)
         self.fat_list.append(fat)
+        self.bounds.append((min_servings,max_servings))
         self.__update_df()
 
     def get_food_arrays(self, id):
@@ -59,6 +62,7 @@ class DietOpt:
         self.carb_list.pop(id)
         self.protein_list.pop(id)
         self.fat_list.pop(id)
+        self.bounds.pop(id)
         self.__update_df()
 
     def add_equality_constrain(self, params, const):
@@ -74,6 +78,7 @@ class DietOpt:
         self.A_ub = []
         self.b_eq = []
         self.b_ub = []
+        self.bounds = []
 
     def solve(self):
         if(len(self.A_eq) == 0):
@@ -87,7 +92,7 @@ class DietOpt:
 
         c = list(self.df.Price)
 
-        return linprog(c, A_eq=self.A_eq, b_eq=self.b_eq, A_ub=self.A_ub, b_ub=self.b_ub)
+        return linprog(c, A_eq=self.A_eq, b_eq=self.b_eq, A_ub=self.A_ub, b_ub=self.b_ub, bounds=self.bounds)
     
     def parse_result(self, res):
         if(res.success):
@@ -101,17 +106,17 @@ class DietOpt:
             out_df = pd.DataFrame(data=out)
             print(tabulate(out_df, headers='keys', tablefmt='psql'))
             
-            print(30*"=")
+            print()
             total_price = round(sum(res.x * self.df.Price),2)
             total_calories = round(sum(res.x * self.df.Calories),2)
             total_carbs = round(sum(res.x * self.df.Carbs),2)
             total_protein = round(sum(res.x * self.df.Proteins),2)
             total_fat = round(sum(res.x * self.df.Fats),2)
             
-            print("Total price:",total_price,"Eur")
+            print("Total diet price:",total_price,"Eur")
             print("Total calories:",total_calories,'g of',self.calories, 'g --> Delta is', self.calories - total_calories, 'g')
             print("Total carbs:",total_carbs,'g of',self.carbohydrates, 'g --> Delta is', self.carbohydrates - total_carbs, 'g')
             print("Total protein:",total_protein,'g of',self.proteins, 'g --> Delta is', self.proteins - total_protein, 'g')
-            print("Total fat:",total_fat,'g of',self.fat_list, 'g --> Delta is', self.fats - total_fat, 'g')
+            print("Total fat:",total_fat,'g of',self.fats, 'g --> Delta is', self.fats - total_fat, 'g')
         else:
             print(res.message)
